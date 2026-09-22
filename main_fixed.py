@@ -37,9 +37,17 @@ BTN_BG = (180,150,255)
 BTN_BG_HOVER = (210,180,255)
 
 BTN_TEXT = (255,255,255)
-BTN_TEXT = (255, 255, 255)
 
 OVERLAY = (255, 255, 255, 235)
+
+# ===== Dimoo 梦境增强元素 =====
+CLOUD_COLOR = (255, 255, 255)
+CLOUD_SHADOW = (230, 220, 250)
+CHAR_FACE = (250, 225, 235)
+CHAR_EYE = (90, 80, 130)
+CHAR_CHEEK = (255, 160, 190)
+GLOW_COLOR = (235, 210, 255)
+
 
 UP, DOWN, LEFT, RIGHT = 1, 2, 3, 4
 
@@ -87,6 +95,28 @@ def draw_dream_background(surface):
             (x,y),
             size
         )
+
+
+def draw_cloud(surface, x, y):
+    """绘制梦境云朵装饰"""
+    pygame.draw.circle(surface, CLOUD_SHADOW, (x+5, y+8), 34)
+    pygame.draw.circle(surface, CLOUD_COLOR, (x, y), 32)
+    pygame.draw.circle(surface, CLOUD_COLOR, (x+35, y-12), 42)
+    pygame.draw.circle(surface, CLOUD_COLOR, (x+70, y), 30)
+    pygame.draw.rect(surface, CLOUD_COLOR, (x, y, 70, 28))
+
+
+def draw_dream_character(surface, x, y):
+    """自主绘制的梦境精灵装饰"""
+    pygame.draw.circle(surface, CHAR_FACE, (x, y), 35)
+
+    pygame.draw.circle(surface, CHAR_EYE, (x-12, y-5), 6)
+    pygame.draw.circle(surface, CHAR_EYE, (x+12, y-5), 6)
+
+    pygame.draw.circle(surface, CHAR_CHEEK, (x-22, y+12), 6)
+    pygame.draw.circle(surface, CHAR_CHEEK, (x+22, y+12), 6)
+
+
 def draw_text(surface, text, font, color, center=None, topleft=None):
     img = font.render(text, True, color)
     rect = img.get_rect()
@@ -98,9 +128,9 @@ def draw_text(surface, text, font, color, center=None, topleft=None):
     return rect
 
 
-def make_arrow_points(cx, cy, direction, size):
+def make_arrow_points(cx, cy, direction, size, scale=1):
     """返回三角形三个顶点。"""
-    size=int(size*scale)
+    size = int(size * scale)
 
     head=size
     tail = size * 0.62
@@ -125,10 +155,16 @@ def draw_arrow(
     border=True,
     scale=1
 ):
-    pts = make_arrow_points(center[0], center[1], direction, size)
+    pts = make_arrow_points(center[0], center[1], direction, size, scale)
     if not pts:
         return
+    # 外层柔光
+    glow_pts = make_arrow_points(center[0], center[1], direction, size + 8, scale)
+    if glow_pts:
+        pygame.draw.polygon(surface, GLOW_COLOR, glow_pts)
+
     pygame.draw.polygon(surface, color, pts)
+
     if border:
         pygame.draw.polygon(surface, (255, 255, 255), pts, 2)
 
@@ -185,7 +221,7 @@ class FlyAnimation:
         alpha = int(255 * (1 - progress))
 
         temp = pygame.Surface((CELL, CELL), pygame.SRCALPHA)
-        pts = make_arrow_points(CELL // 2, CELL // 2, self.direction, 26)
+        pts = make_arrow_points(CELL // 2, CELL // 2, self.direction, 26, 1)
         if pts:
             pygame.draw.polygon(temp, (*ARROW_COLOR, alpha), pts)
 
@@ -356,7 +392,8 @@ class Game:
 
             if self.state == STATE_START:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    self.start_game()
+                    if self.start_button_rect.collidepoint(event.pos):
+                        self.start_game()
                 continue
 
             if self.state == STATE_PLAYING:
@@ -513,6 +550,23 @@ class Game:
             self.draw_start()
             return
         self.screen.fill(BG_COLOR)
+
+        # 梦境装饰
+        draw_cloud(self.screen, 25, 330)
+        draw_cloud(self.screen, 590, 330)
+
+        draw_dream_character(
+            self.screen,
+            55,
+            620
+        )
+
+        draw_dream_character(
+            self.screen,
+            665,
+            620
+        )
+
         self.draw_hud()
         self.draw_board()
         if self.state == STATE_WIN:
